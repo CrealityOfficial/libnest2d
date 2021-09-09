@@ -1,7 +1,7 @@
 #ifndef CLIPPER_POLYGON_HPP
 #define CLIPPER_POLYGON_HPP
 
-#include <clipper/clipper.hpp>
+#include <clipper.hpp>
 
 namespace ClipperLib {
 
