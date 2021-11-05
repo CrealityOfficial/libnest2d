@@ -24,9 +24,16 @@ set(LIBNEST2D_SRCFILES
     src/libnest2d.cpp
     )
 
+set(LIBS clipperz nlopt)
+set(DEFS LIBNEST2D_STATIC LIBNEST2D_OPTIMIZER_nlopt LIBNEST2D_GEOMETRIES_clipper)
+
+if(TARGET tbb)
+	list(APPEND LIBS tbb)
+	list(APPEND DEFS USE_TBB)
+endif()
 __add_real_target(libnest2d lib SOURCE ${LIBNEST2D_SRCFILES}
-								LIB clipperz tbb nlopt
-								DEF USE_TBB LIBNEST2D_STATIC LIBNEST2D_OPTIMIZER_nlopt LIBNEST2D_GEOMETRIES_clipper
+								LIB ${LIBS}
+								DEF ${DEFS}
 								INC ${CMAKE_CURRENT_SOURCE_DIR}/include/ ${BOOST_INCLUDE_DIRS}
 								INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
