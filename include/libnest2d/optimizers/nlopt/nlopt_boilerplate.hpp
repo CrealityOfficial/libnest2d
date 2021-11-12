@@ -6,7 +6,7 @@
 #pragma warning(disable: 4244)
 #pragma warning(disable: 4267)
 #endif
-#include <nlopt.hpp>
+#include <../nlopt/nlopt.hpp>
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

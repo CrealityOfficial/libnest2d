@@ -3,15 +3,15 @@
 
 // The type of backend should be set conditionally by the cmake configuriation
 // for now we set it statically to clipper backend
-#ifdef LIBNEST2D_GEOMETRIES_clipper
+//#ifdef LIBNEST2D_GEOMETRIES_clipper
 #include <libnest2d/backends/clipper/geometries.hpp>
-#endif
+//#endif
 
-#ifdef LIBNEST2D_OPTIMIZER_nlopt
+//#ifdef LIBNEST2D_OPTIMIZER_nlopt
 // We include the stock optimizers for local and global optimization
 #include <libnest2d/optimizers/nlopt/subplex.hpp>     // Local subplex for NfpPlacer
 #include <libnest2d/optimizers/nlopt/genetic.hpp>     // Genetic for min. bounding box
-#endif
+//#endif
 
 #include <libnest2d/nester.hpp>
 #include <libnest2d/placers/bottomleftplacer.hpp>
