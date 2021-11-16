@@ -776,11 +776,7 @@ private:
 
         PackResult ret;
 
-<<<<<<< HEAD
-        int type;
-=======
         int type = 0;
->>>>>>> 18ac2a1
         bool can_pack = false;
         double best_overfit = std::numeric_limits<double>::max();
 
@@ -829,22 +825,11 @@ private:
 
                 Shapes pile;
                 pile.reserve(items_.size()+1);
-<<<<<<< HEAD
-                double pile_area = 0;
-                Item firstitem = items_[0];
-                bp2d::Box pile_box = firstitem.boundingBox();
-                for(Item& mitem : items_) {
-                    pile.emplace_back(mitem.transformedShape());
 
-                    pile_area += mitem.area();
-                    auto mitembb = mitem.boundingBox();
-                    pile_box = sl::boundingBox(pile_box, mitembb);
-=======
                  double pile_area = 0;
                 for(Item& mitem : items_) {
                     pile.emplace_back(mitem.transformedShape());
                     pile_area += mitem.area();
->>>>>>> 18ac2a1
                 }
 
                 auto merged_pile = nfp::merge(pile);
@@ -856,11 +841,7 @@ private:
                 // This is the kernel part of the object function that is
                 // customizable by the library client
                 std::function<double(const Item&)> _objfunc;
-<<<<<<< HEAD
                 if (config_.object_function)  ///_objfunc = config_.object_function;
-=======
-                if (config_.object_function) //
->>>>>>> 18ac2a1
                 {
                     // Inside check has to be strict if no alignment was enabled
                     std::function<double(const Box&)> ins_check;
@@ -881,33 +862,7 @@ private:
                     std::function<double(const Item&)> geTypeFunction;
                     geTypeFunction = config_.object_function;
                     type = geTypeFunction(item);
-<<<<<<< HEAD
 
-                    _objfunc = [norm, binbb, pbb, ins_check, type](const Item& item)
-                    {
-                        auto ibb = item.boundingBox();
-                        auto fullbb = sl::boundingBox(pbb, ibb);
-                        double score = 0;
-
-                        switch(type)
-                        {
-                            case 0:score = pl::distance(ibb.center(),          //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                                binbb.center()); break;
-                            case 1:score = fabs(ibb.center().Y); break;        //从Y中轴线向上下两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                            case 2:score = fabs(ibb.center().X); break;        //从X中轴线向左右两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                            case 3:score = ibb.center().X; break;              //从X轴0向右方向排样，starting_point = BOTTOM_LEFT或starting_point = TOP_LEFT，alignment = DONT_ALIGN
-                            case 4:score = (norm / 2) - ibb.center().X; break; //从X轴max向左方向排样，starting_point = BOTTOM_RIGHT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
-                            case 5:score = ibb.center().X; break;              //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
-                            case 6:score = (norm / 2) - ibb.center().Y; break; //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
-
-                        }
-                        score /= norm;
-
-                        score += ins_check(fullbb);
-
-                        return score;
-                    };
-=======
                     if (type > 2)
                     {
                         _objfunc = [norm, binbb, pbb, ins_check, type, pile_area](const Item& item)
@@ -932,7 +887,7 @@ private:
 
                             double totalArea = fullbb.area();
 
-                            if (type == 3)
+                            if (type == 3)   //使布局宽高与排样区域宽高相近
                             {
                                 double fullbbH = fullbb.height();                       
                                 double fullbbW = fullbb.width();
@@ -956,7 +911,6 @@ private:
                     {
                         _objfunc = config_.object_function;
                     }
->>>>>>> 18ac2a1
                 }
                 else {
 
