@@ -24,7 +24,7 @@ set(LIBNEST2D_SRCFILES
     src/libnest2d.cpp
     )
 
-set(LIBS clipperz nlopt)
+set(LIBS clipper3r nlopt)
 set(DEFS LIBNEST2D_STATIC LIBNEST2D_OPTIMIZER_nlopt LIBNEST2D_GEOMETRIES_clipper)
 
 if(TARGET tbb)

@@ -1,9 +1,9 @@
 #ifndef CLIPPER_POLYGON_HPP
 #define CLIPPER_POLYGON_HPP
 
-#include <../clipperz/clipper.hpp>
+#include <clipper3r/clipper.hpp>
 
-namespace ClipperLib {
+namespace Clipper3r {
 
 struct Polygon {
     Path Contour;
