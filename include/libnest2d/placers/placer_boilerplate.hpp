@@ -35,6 +35,11 @@ public:
             move_(item.translation()),
             rot_(item.rotation()) {}
 
+        PackResult(Item& item, bool pack_out) :
+            item_ptr_(nullptr),
+            move_(item.translation()),
+            rot_(item.rotation()) {}
+
         PackResult(double overfit = 1.0):
             item_ptr_(nullptr), overfit_(overfit) {}
 
@@ -65,6 +70,7 @@ public:
             items_.emplace_back(*(r.item_ptr_));
             farea_valid_ = false;
         }
+        if(r.move_.X != 0 || r.move_.Y != 0)  return true;
         return r;
     }
 

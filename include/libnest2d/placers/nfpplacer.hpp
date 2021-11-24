@@ -778,7 +778,10 @@ private:
 
         int type = 0;
         bool can_pack = false;
+        bool pack_out = false;
         double best_overfit = std::numeric_limits<double>::max();
+        auto& bin = bin_;
+        auto binbb = sl::boundingBox(bin);
 
         ItemGroup remlist;
         if(remaining.valid) {
@@ -833,10 +836,9 @@ private:
                 }
 
                 auto merged_pile = nfp::merge(pile);
-                auto& bin = bin_;
                 double norm = norm_;
                 auto pbb = sl::boundingBox(merged_pile);
-                auto binbb = sl::boundingBox(bin);
+                
 
                 // This is the kernel part of the object function that is
                 // customizable by the library client
@@ -863,7 +865,7 @@ private:
                     geTypeFunction = config_.object_function;
                     type = geTypeFunction(item);
 
-                    if (type > 2)
+                    if (type > 2 && type < 10)
                     {
                         _objfunc = [norm, binbb, pbb, ins_check, type, pile_area](const Item& item)
                         {
@@ -1116,8 +1118,49 @@ private:
             item.rotation(final_rot);
         }
 
+        if (type > 2 && type < 10)
+        {
+            //判断当前模型排进去后是否会出界，若出界，将其转至原点位置
+            Vertex origin_tr;
+            auto trans_item = item.transformedShape_s();
+            Clipper3r::Clipper a;
+            a.AddPath(trans_item.Contour, Clipper3r::ptSubject, true);
+            for (int i = 0; i < items_.size(); i++)
+            {
+                Item item_tmp = items_[i];
+                auto trans_item_tmp = item_tmp.transformedShape_s();
+                a.AddPath(trans_item_tmp.Contour, Clipper3r::ptSubject, true);
+            }
+            Clipper3r::IntRect ibb_dst = a.GetBounds();
+
+            int ibbH = binbb.height();
+            int ibbW = binbb.width();
+
+            switch (type)
+            {
+            case 3: {ibbH = ibbH / 3; ibbW = ibbW / 3; origin_tr = { ibbW, ibbH }; } break;
+            case 4: {ibbH = ibbH / 3; origin_tr = { 0, ibbH }; } break;
+            case 5: {ibbW = ibbW / 3; origin_tr = { ibbW, 0 }; } break;
+            case 6: {ibbW = ibbW / 3; origin_tr = { ibbW, 0 }; } break;
+            case 7: {ibbW = ibbW / 3; origin_tr = { ibbW * 2, 0 }; } break;
+            case 8: {ibbH = ibbH / 3; origin_tr = { 0, ibbH * 2 }; } break;
+            case 9: {ibbH = ibbH / 3; origin_tr = { 0, ibbH }; } break;
+            }
+
+            if (!(ibb_dst.bottom - ibb_dst.top <= ibbH &&
+                ibb_dst.right - ibb_dst.left <= ibbW))
+            {
+                pack_out = true;
+                item.translation(origin_tr);
+                item.rotation(-0.5*Pi);//超界标志
+            }
+        }
+
         if(can_pack) {
-            ret = PackResult(item);
+            if(pack_out) 
+                ret = PackResult(item, best_overfit);
+            else 
+                ret = PackResult(item);
         } else {
             ret = PackResult(best_overfit);
         }

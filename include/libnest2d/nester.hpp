@@ -345,6 +345,17 @@ public:
         return tr_cache_;
     }
 
+    inline const RawShape transformedShape_s() const
+    {
+        RawShape cpy = sh_;
+        if (has_rotation_) sl::rotate(cpy, rotation_);
+        PointImpl trans_data;
+        trans_data.X = translation_.X;
+        trans_data.Y = translation_.Y;
+        if (has_translation_) sl::translate(cpy, trans_data);
+        return cpy;
+    }
+
     inline operator RawShape() const
     {
         return transformedShape();
@@ -422,6 +433,7 @@ private:
 
             inflate_cache_ = sh_;
             sl::offset(inflate_cache_, inflation_);
+            inflate_cache_.Contour = sl::convexHull(inflate_cache_.Contour); //保证放大后还是凸包
             inflate_cache_valid_ = true;
             return inflate_cache_;
         }

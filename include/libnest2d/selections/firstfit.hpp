@@ -68,7 +68,7 @@ public:
             return p1 == p2 ? i1.area() > i2.area() : p1 > p2;
         };
 
-        std::sort(store_.begin(), store_.end(), sortfunc);
+        //std::sort(store_.begin(), store_.end(), sortfunc);//取消从大到小排布
 
         auto total = last-first;
         auto makeProgress = [this, &total](Placer& placer, size_t idx) {
