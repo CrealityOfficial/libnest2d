@@ -788,6 +788,13 @@ private:
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
 
+        if (config_.object_function)  
+        {
+            std::function<double(const Item&)> geTypeFunction;
+            geTypeFunction = config_.object_function;
+            type = geTypeFunction(item);
+        }
+
         if(items_.empty()) {
             setInitialPosition(item);
             best_overfit = overfit(item.transformedShape(), bin_);
@@ -860,10 +867,6 @@ private:
                         miss = miss > 0 ? miss : 0;
                         return std::pow(miss, 2);
                     };
-
-                    std::function<double(const Item&)> geTypeFunction;
-                    geTypeFunction = config_.object_function;
-                    type = geTypeFunction(item);
 
                     if (type > 2 && type < 10)
                     {
@@ -1118,7 +1121,7 @@ private:
             item.rotation(final_rot);
         }
 
-        if (type > 2 && type < 10)
+        if (type > 2 && type < 10 && can_pack)
         {
             //判断当前模型排进去后是否会出界，若出界，将其转至原点位置
             Vertex origin_tr;
@@ -1162,7 +1165,15 @@ private:
             else 
                 ret = PackResult(item);
         } else {
-            ret = PackResult(best_overfit);
+            if (type > 2 && type < 10)
+            {
+                item.rotation(-0.5 * Pi);//超界标志
+                ret = PackResult(item, best_overfit);
+            }
+            else
+            {
+                ret = PackResult(best_overfit);
+            }
         }
 
         return ret;
