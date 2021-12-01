@@ -777,6 +777,7 @@ private:
         PackResult ret;
 
         int type = 0;
+        bool bNest2d = false;
         bool can_pack = false;
         bool pack_out = false;
         double best_overfit = std::numeric_limits<double>::max();
@@ -788,23 +789,38 @@ private:
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
 
-        if (config_.object_function)  
+        if (config_.object_function)
         {
             std::function<double(const Item&)> geTypeFunction;
             geTypeFunction = config_.object_function;
             type = geTypeFunction(item);
+            if (type > 2 && type < 10)
+            {
+                bNest2d = true;
+            }
         }
 
+        if (item.translation().X != 0 || item.translation().Y != 0)
+        {
+            item.transformedShape();
+            ret = PackResult(item);
+            return ret;
+        }
+
+        auto initial_tr = item.translation();
+        auto initial_rot = item.rotation();
         if(items_.empty()) {
-            setInitialPosition(item);
-            best_overfit = overfit(item.transformedShape(), bin_);
-            can_pack = best_overfit <= 0;
+            for (auto rot : config_.rotations) {
+                setInitialPosition(item);
+                item.rotation(initial_rot + rot);
+                best_overfit = overfit(item.transformedShape(), bin);
+                can_pack = best_overfit <= 0;
+                if (can_pack) break;
+            }
         } else {
 
             double global_score = std::numeric_limits<double>::max();
 
-            auto initial_tr = item.translation();
-            auto initial_rot = item.rotation();
             Vertex final_tr = {0, 0};
             Radians final_rot = initial_rot;
             Shapes nfps;
@@ -868,7 +884,7 @@ private:
                         return std::pow(miss, 2);
                     };
 
-                    if (type > 2 && type < 10)
+                    if (bNest2d)
                     {
                         _objfunc = [norm, binbb, pbb, ins_check, type, pile_area](const Item& item)
                         {
@@ -880,14 +896,14 @@ private:
 
                             switch (type)
                             {
-                            case 3:score = pl::distance(ibb.center(),          //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
+                            case 3:score = pl::distance(ibb.center(),                           //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
                                 binbb.center()) / norm; break;
                             case 4:score = fabs(ibb.center().Y - binH / 2)/ binH; break;        //从Y中轴线向上下两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
                             case 5:score = fabs(ibb.center().X - binW / 2)/ binW; break;        //从X中轴线向左右两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                            case 6:score = ibb.center().X / binW; break;              //从X轴0向右方向排样，starting_point = BOTTOM_LEFT或starting_point = TOP_LEFT，alignment = DONT_ALIGN
-                            case 7:score = (binW - ibb.center().X) / binW; break; //从X轴max向左方向排样，starting_point = BOTTOM_RIGHT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
-                            case 8:score = ibb.center().Y / binH; break;              //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
-                            case 9:score = (binH - ibb.center().Y) / binH; break; //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
+                            case 6:score = ibb.center().X / binW; break;                        //从X轴0向右方向排样，starting_point = BOTTOM_LEFT或starting_point = TOP_LEFT，alignment = DONT_ALIGN
+                            case 7:score = (binW - ibb.center().X) / binW; break;               //从X轴max向左方向排样，starting_point = BOTTOM_RIGHT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
+                            case 8:score = ibb.center().Y / binH; break;                        //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
+                            case 9:score = (binH - ibb.center().Y) / binH; break;               //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
                             }
 
                             double totalArea = fullbb.area();
@@ -935,7 +951,7 @@ private:
                             return std::pow(miss, 2);
                         };
 
-                    _objfunc = [norm, binbb, pbb, ins_check](const Item& item)  
+                    _objfunc = [norm, binbb, pbb, ins_check, pile_area](const Item& item)
                     {
                         auto ibb = item.boundingBox();
                         auto fullbb = sl::boundingBox(pbb, ibb);
@@ -944,6 +960,21 @@ private:
                                                     binbb.center());
                         score /= norm;
     
+                        double binH = binbb.height();
+                        double binW = binbb.width();
+                        if (binH < 1000000)
+                        {
+                            double fullbbH = fullbb.height();
+                            double fullbbW = fullbb.width();
+                            double fullbbH_cal = fullbbW / binW * binH;
+                            double fullbbW_cal = fullbbH / binH * binW;
+                            fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                            fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                            double totalArea = fullbbH * fullbbW;
+                            double area_score = 1 - pile_area / totalArea;//最小面积加权
+                            score = score * 0.7 + area_score * 0.3;
+                        }
+
                         score += ins_check(fullbb);
 
                         return score;
@@ -1121,7 +1152,7 @@ private:
             item.rotation(final_rot);
         }
 
-        if (type > 2 && type < 10 && can_pack)
+        if (bNest2d && can_pack)
         {
             //判断当前模型排进去后是否会出界，若出界，将其转至原点位置
             Vertex origin_tr;
@@ -1135,9 +1166,9 @@ private:
                 a.AddPath(trans_item_tmp.Contour, Clipper3r::ptSubject, true);
             }
             Clipper3r::IntRect ibb_dst = a.GetBounds();
-
-            int ibbH = binbb.height();
-            int ibbW = binbb.width();
+            item.inflation();
+            int ibbH = binbb.height() - 2 * item.inflation();
+            int ibbW = binbb.width() - 2 * item.inflation();
 
             switch (type)
             {
@@ -1165,16 +1196,18 @@ private:
             else 
                 ret = PackResult(item);
         } else {
-            if (type > 2 && type < 10)
-            {
-                item.rotation(-0.5 * Pi);//超界标志
-                ret = PackResult(item, best_overfit);
-            }
-            else
-            {
-                ret = PackResult(best_overfit);
-            }
+            item.translation({});
+            item.rotation(-0.5 * Pi);//超界标志
+            ret = PackResult(item, best_overfit);
         }
+
+
+        //if (can_pack) {
+        //     ret = PackResult(item);
+        //}
+        //else {
+        //    ret = PackResult(best_overfit);
+        //}
 
         return ret;
     }

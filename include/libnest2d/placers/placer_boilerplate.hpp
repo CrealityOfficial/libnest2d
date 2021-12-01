@@ -70,7 +70,7 @@ public:
             items_.emplace_back(*(r.item_ptr_));
             farea_valid_ = false;
         }
-        if(r.move_.X != 0 || r.move_.Y != 0)  return true;
+        if(r.move_.X != 0 || r.move_.Y != 0 || double(r.rot_) == -0.5*Pi)  return true;
         return r;
     }
 
