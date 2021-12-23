@@ -65,10 +65,15 @@ public:
         
         auto sortfunc = [](Item& i1, Item& i2) {
             int p1 = i1.priority(), p2 = i2.priority();
-            return p1 == p2 ? i1.area() > i2.area() : p1 > p2;
+            bool needSwap = false;
+            if (i1.translation().X == 0 && i1.translation().Y == 0 && i2.translation().X == 0 && i2.translation().Y == 0) //only both non_packed sort
+            {
+                needSwap = p1 == p2 ? i1.area() > i2.area() : p1 > p2;
+            }
+            return needSwap;
         };
 
-        //std::sort(store_.begin(), store_.end(), sortfunc);//取消从大到小排布
+        std::sort(store_.begin(), store_.end(), sortfunc);
 
         auto total = last-first;
         auto makeProgress = [this, &total](Placer& placer, size_t idx) {

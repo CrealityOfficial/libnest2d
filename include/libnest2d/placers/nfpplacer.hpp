@@ -861,7 +861,7 @@ private:
                 auto merged_pile = nfp::merge(pile);
                 double norm = norm_;
                 auto pbb = sl::boundingBox(merged_pile);
-                
+
 
                 // This is the kernel part of the object function that is
                 // customizable by the library client
@@ -951,17 +951,24 @@ private:
                             return std::pow(miss, 2);
                         };
 
-                    _objfunc = [norm, binbb, pbb, ins_check, pile_area](const Item& item)
+                    _objfunc = [norm, binbb, pbb, ins_check, pile_area, remlist](const Item& item)
                     {
                         auto ibb = item.boundingBox();
                         auto fullbb = sl::boundingBox(pbb, ibb);
-
-                        double score = pl::distance(ibb.center(),   //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                                                    binbb.center());
-                        score /= norm;
-    
                         double binH = binbb.height();
                         double binW = binbb.width();
+                        double score = 0;
+                        if (remlist.empty())
+                        {
+                            score = fabs(ibb.center().X - binW / 2) / binW;
+                        }
+                        else
+                        {
+                            score = pl::distance(ibb.center(),   //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
+                                binbb.center());
+                            score /= norm;                          
+                        }
+
                         if (binH < 1000000)
                         {
                             double fullbbH = fullbb.height();
@@ -1146,6 +1153,9 @@ private:
                     can_pack = true;
                     global_score = best_score;
                 }
+
+                if (rot.toDegrees() == 0.f && can_pack && !bNest2d)
+                    break;
             }
 
             item.translation(final_tr);
