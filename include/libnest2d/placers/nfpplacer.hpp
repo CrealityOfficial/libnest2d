@@ -957,7 +957,8 @@ private:
                         auto fullbb = sl::boundingBox(pbb, ibb);
                         double binH = binbb.height();
                         double binW = binbb.width();
-                        double score = 0;
+                        double score = 0.f;
+
                         if (remlist.empty())
                         {
                             score = fabs(ibb.center().X - binW / 2) / binW;
@@ -966,9 +967,9 @@ private:
                         {
                             score = pl::distance(ibb.center(),   //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
                                 binbb.center());
-                            score /= norm;                          
+                            score /= norm;
                         }
-
+    
                         if (binH < 1000000)
                         {
                             double fullbbH = fullbb.height();
@@ -979,7 +980,7 @@ private:
                             fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
                             double totalArea = fullbbH * fullbbW;
                             double area_score = 1 - pile_area / totalArea;//最小面积加权
-                            score = score * 0.7 + area_score * 0.3;
+                            score = score * 0.5 + area_score * 0.5;
                         }
 
                         score += ins_check(fullbb);
