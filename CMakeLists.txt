@@ -1,3 +1,5 @@
+__assert_target(nlopt)
+
 set(LIBNEST2D_SRCFILES
     include/libnest2d/libnest2d.hpp
     include/libnest2d/nester.hpp
