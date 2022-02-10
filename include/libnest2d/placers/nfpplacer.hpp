@@ -908,16 +908,13 @@ private:
 
                             double totalArea = fullbb.area();
 
-                            if (type == 3)   //使布局宽高与排样区域宽高相近
-                            {
-                                double fullbbH = fullbb.height();                       
-                                double fullbbW = fullbb.width();
-                                double fullbbH_cal = fullbbW / binW * binH;
-                                double fullbbW_cal = fullbbH / binH * binW;
-                                fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
-                                fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
-                                totalArea = fullbbH * fullbbW;
-                            }
+                            double fullbbH = fullbb.height();                       
+                            double fullbbW = fullbb.width();
+                            double fullbbH_cal = fullbbW / binW * binH;
+                            double fullbbW_cal = fullbbH / binH * binW;
+                            fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                            fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                            totalArea = fullbbH * fullbbW;
 
                             double area_score = 1 - pile_area / totalArea;//最小面积加权
 
@@ -958,30 +955,19 @@ private:
                         double binH = binbb.height();
                         double binW = binbb.width();
                         double score = 0.f;
-
-                        if (remlist.empty())
-                        {
-                            score = fabs(ibb.center().X - binW / 2) / binW;
-                        }
-                        else
-                        {
-                            score = pl::distance(ibb.center(),   //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                                binbb.center());
-                            score /= norm;
-                        }
+                        score = pl::distance(ibb.center(), binbb.center());
+                          
+                        score /= norm;
     
-                        if (binH < 1000000)
-                        {
-                            double fullbbH = fullbb.height();
-                            double fullbbW = fullbb.width();
-                            double fullbbH_cal = fullbbW / binW * binH;
-                            double fullbbW_cal = fullbbH / binH * binW;
-                            fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
-                            fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
-                            double totalArea = fullbbH * fullbbW;
-                            double area_score = 1 - pile_area / totalArea;//最小面积加权
-                            score = score * 0.5 + area_score * 0.5;
-                        }
+                        double fullbbH = fullbb.height();
+                        double fullbbW = fullbb.width();
+                        double fullbbH_cal = fullbbW / binW * binH;
+                        double fullbbW_cal = fullbbH / binH * binW;
+                        fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                        fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                        double totalArea = fullbbH * fullbbW;
+                        double area_score = 1 - pile_area / totalArea;//最小面积加权
+                        score = score * 0.5 + area_score * 0.5;
 
                         score += ins_check(fullbb);
 
@@ -1155,7 +1141,7 @@ private:
                     global_score = best_score;
                 }
 
-                if (rot.toDegrees() == 0.f && can_pack && !bNest2d)
+                if (rot.toDegrees() == 0.f && can_pack/* && !bNest2d*/)
                     break;
             }
 
@@ -1166,7 +1152,7 @@ private:
         if (bNest2d && can_pack)
         {
             //判断当前模型排进去后是否会出界，若出界，将其转至原点位置
-            Vertex origin_tr;
+            Vertex origin_tr = { 0, 0 };
             auto trans_item = item.transformedShape_s();
             Clipper3r::Clipper a;
             a.AddPath(trans_item.Contour, Clipper3r::ptSubject, true);
@@ -1180,17 +1166,6 @@ private:
             item.inflation();
             int ibbH = binbb.height() - 2 * item.inflation();
             int ibbW = binbb.width() - 2 * item.inflation();
-
-            switch (type)
-            {
-            case 3: {ibbH = ibbH / 3; ibbW = ibbW / 3; origin_tr = { ibbW, ibbH }; } break;
-            case 4: {ibbH = ibbH / 3; origin_tr = { 0, ibbH }; } break;
-            case 5: {ibbW = ibbW / 3; origin_tr = { ibbW, 0 }; } break;
-            case 6: {ibbW = ibbW / 3; origin_tr = { ibbW, 0 }; } break;
-            case 7: {ibbW = ibbW / 3; origin_tr = { ibbW * 2, 0 }; } break;
-            case 8: {ibbH = ibbH / 3; origin_tr = { 0, ibbH * 2 }; } break;
-            case 9: {ibbH = ibbH / 3; origin_tr = { 0, ibbH }; } break;
-            }
 
             if (!(ibb_dst.bottom - ibb_dst.top <= ibbH &&
                 ibb_dst.right - ibb_dst.left <= ibbW))
