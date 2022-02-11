@@ -906,15 +906,13 @@ private:
                             case 9:score = (binH - ibb.center().Y) / binH; break;               //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
                             }
 
-                            double totalArea = fullbb.area();
-
                             double fullbbH = fullbb.height();                       
                             double fullbbW = fullbb.width();
                             double fullbbH_cal = fullbbW / binW * binH;
                             double fullbbW_cal = fullbbH / binH * binW;
                             fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
                             fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
-                            totalArea = fullbbH * fullbbW;
+                            double totalArea = fullbbH * fullbbW;
 
                             double area_score = 1 - pile_area / totalArea;//最小面积加权
 
@@ -958,16 +956,18 @@ private:
                         score = pl::distance(ibb.center(), binbb.center());
                           
                         score /= norm;
-    
-                        double fullbbH = fullbb.height();
-                        double fullbbW = fullbb.width();
-                        double fullbbH_cal = fullbbW / binW * binH;
-                        double fullbbW_cal = fullbbH / binH * binW;
-                        fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
-                        fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
-                        double totalArea = fullbbH * fullbbW;
-                        double area_score = 1 - pile_area / totalArea;//最小面积加权
-                        score = score * 0.5 + area_score * 0.5;
+                        if (!remlist.empty())
+                        {
+                            double fullbbH = fullbb.height();
+                            double fullbbW = fullbb.width();
+                            double fullbbH_cal = fullbbW / binW * binH;
+                            double fullbbW_cal = fullbbH / binH * binW;
+                            fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                            fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                            double totalArea = fullbbH * fullbbW;
+                            double area_score = 1 - pile_area / totalArea;//最小面积加权
+                            score = score * 0.5 + area_score * 0.5;
+                        }
 
                         score += ins_check(fullbb);
 
@@ -1141,7 +1141,7 @@ private:
                     global_score = best_score;
                 }
 
-                if (rot.toDegrees() == 0.f && can_pack/* && !bNest2d*/)
+                if (rot.toDegrees() == 0.f && can_pack && !bNest2d)
                     break;
             }
 
@@ -1187,13 +1187,6 @@ private:
             ret = PackResult(item, best_overfit);
         }
 
-
-        //if (can_pack) {
-        //     ret = PackResult(item);
-        //}
-        //else {
-        //    ret = PackResult(best_overfit);
-        //}
 
         return ret;
     }
