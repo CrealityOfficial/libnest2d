@@ -794,7 +794,7 @@ private:
             std::function<double(const Item&)> geTypeFunction;
             geTypeFunction = config_.object_function;
             type = geTypeFunction(item);
-            if (type > 2 && type < 10)
+            if (type > 2 && type < 11)
             {
                 bNest2d = true;
             }
@@ -904,19 +904,29 @@ private:
                             case 7:score = (binW - ibb.center().X) / binW; break;               //从X轴max向左方向排样，starting_point = BOTTOM_RIGHT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
                             case 8:score = ibb.center().Y / binH; break;                        //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
                             case 9:score = (binH - ibb.center().Y) / binH; break;               //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
+                            case 10:score = (binH - ibb.center().Y) / binH; break;
                             }
 
-                            double fullbbH = fullbb.height();                       
-                            double fullbbW = fullbb.width();
-                            double fullbbH_cal = fullbbW / binW * binH;
-                            double fullbbW_cal = fullbbH / binH * binW;
-                            fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
-                            fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
-                            double totalArea = fullbbH * fullbbW;
+                            if (type == 3)
+                            {
+                                double fullbbH = fullbb.height();
+                                double fullbbW = fullbb.width();
+                                double fullbbH_cal = fullbbW / binW * binH;
+                                double fullbbW_cal = fullbbH / binH * binW;
+                                fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                                fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                                double totalArea = fullbbH * fullbbW;
 
-                            double area_score = 1 - pile_area / totalArea;//最小面积加权
+                                double area_score = 1 - pile_area / totalArea;//最小面积加权
 
-                            score = score * 0.5 + area_score * 0.5;
+                                score = score * 0.5 + area_score * 0.5;
+                            }
+
+                            if (type == 10)
+                            {
+                                double score_mid = fabs(ibb.center().X - binW / 2) / binW;
+                                score = score * 0.5 + score_mid * 0.5;
+                            }
 
                             score += ins_check(fullbb);
 
@@ -1141,7 +1151,7 @@ private:
                     global_score = best_score;
                 }
 
-                if (rot.toDegrees() == 0.f && can_pack && !bNest2d)
+                if (rot.toDegrees() == 0.f && can_pack && (!bNest2d || type == 10))
                     break;
             }
 
