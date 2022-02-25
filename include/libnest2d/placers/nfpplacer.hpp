@@ -893,6 +893,8 @@ private:
                             double score = 0;
                             double binH = binbb.height();
                             double binW = binbb.width();
+                            auto pbb_area = pbb.area();
+                            auto fullbb_area = fullbb.area();
 
                             switch (type)
                             {
@@ -918,6 +920,8 @@ private:
                                 double totalArea = fullbbH * fullbbW;
 
                                 double area_score = 1 - pile_area / totalArea;//最小面积加权
+                                if (pbb_area == fullbb_area) 
+                                    area_score = 0;
 
                                 score = score * 0.5 + area_score * 0.5;
                             }
