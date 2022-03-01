@@ -895,11 +895,12 @@ private:
                             double binW = binbb.width();
                             auto pbb_area = pbb.area();
                             auto fullbb_area = fullbb.area();
+                            double norm_pdd = pbb.height() + pbb.width();
 
                             switch (type)
                             {
                             case 3:score = pl::distance(ibb.center(),                           //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                                binbb.center()) / norm; break;
+                                binbb.center()) / norm_pdd; break;
                             case 4:score = fabs(ibb.center().Y - binH / 2)/ binH; break;        //从Y中轴线向上下两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
                             case 5:score = fabs(ibb.center().X - binW / 2)/ binW; break;        //从X中轴线向左右两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
                             case 6:score = ibb.center().X / binW; break;                        //从X轴0向右方向排样，starting_point = BOTTOM_LEFT或starting_point = TOP_LEFT，alignment = DONT_ALIGN
