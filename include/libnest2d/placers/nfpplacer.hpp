@@ -967,10 +967,10 @@ private:
                         auto fullbb = sl::boundingBox(pbb, ibb);
                         double binH = binbb.height();
                         double binW = binbb.width();
+                        double norm_pdd = pbb.height() + pbb.width();
                         double score = 0.f;
-                        score = pl::distance(ibb.center(), binbb.center());
-                          
-                        score /= norm;
+                        score = pl::distance(ibb.center(), binbb.center())/ norm_pdd;
+
                         if (!remlist.empty())
                         {
                             double fullbbH = fullbb.height();
