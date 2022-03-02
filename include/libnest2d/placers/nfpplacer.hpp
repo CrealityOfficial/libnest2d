@@ -60,14 +60,20 @@ inline void enumerate(
         for(TN n = 0; n < N; n++) fn(*(from + n), n);
     }
 #else
-    std::vector<std::future<void>> rets(N);
+    if ((policy & std::launch::async) == std::launch::async)
+    {
+        std::vector<std::future<void>> rets(N);
 
-    auto it = from;
-    for(TN b = 0; b < N; b++) {
-        rets[b] = std::async(policy, fn, *it++, unsigned(b));
+        auto it = from;
+        for (TN b = 0; b < N; b++) {
+            rets[b] = std::async(policy, fn, *it++, unsigned(b));
+        }
+
+        for (TN fi = 0; fi < N; ++fi) rets[fi].wait();
     }
-
-    for(TN fi = 0; fi < N; ++fi) rets[fi].wait();
+    else {
+        for (TN n = 0; n < N; n++) fn(*(from + n), n);
+    }
 #endif
 }
 
@@ -598,6 +604,8 @@ private:
             itm.leftmostBottomVertex();
         }
         // /////////////////////////////////////////////////////////////////////
+        std::launch policy = std::launch::deferred;
+        if (config_.parallel) policy |= std::launch::async;
 
         __parallel::enumerate(items_.begin(), items_.end(),
                               [&nfps, &trsh](const Item& sh, size_t n)
@@ -607,7 +615,7 @@ private:
             auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(fixedp, orbp);
             correctNfpPosition(subnfp_r, sh, trsh);
             nfps[n] = subnfp_r.first;
-        });
+        }, policy);
 
         return nfp::merge(nfps);
     }
