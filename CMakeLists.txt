@@ -1,3 +1,8 @@
+__cc_find(Clipper3r)
+__assert_target(clipper3r)
+__cc_find(Nlopt)
+__assert_target(nlopt)
+
 set(LIBNEST2D_SRCFILES
     include/libnest2d/libnest2d.hpp
     include/libnest2d/nester.hpp
