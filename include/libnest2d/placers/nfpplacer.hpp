@@ -907,18 +907,13 @@ private:
 
                             switch (type)
                             {
-                            case 3:score = pl::distance(ibb.center(),                           //到中心距离最小化,从中心往外排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
+                            case 3:
+                            case 4:score = pl::distance(ibb.center(),                           
                                 binbb.center()) / norm_pdd; break;
-                            case 4:score = fabs(ibb.center().Y - binH / 2)/ binH; break;        //从Y中轴线向上下两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                            case 5:score = fabs(ibb.center().X - binW / 2)/ binW; break;        //从X中轴线向左右两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-                            case 6:score = ibb.center().X / binW; break;                        //从X轴0向右方向排样，starting_point = BOTTOM_LEFT或starting_point = TOP_LEFT，alignment = DONT_ALIGN
-                            case 7:score = (binW - ibb.center().X) / binW; break;               //从X轴max向左方向排样，starting_point = BOTTOM_RIGHT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
-                            case 8:score = ibb.center().Y / binH; break;                        //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
-                            case 9:score = (binH - ibb.center().Y) / binH; break;               //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
-                            case 10:score = (binH - ibb.center().Y) / binH; break;
+                            case 5:score = (binH - ibb.center().Y) / binH; break;
                             }
 
-                            if (type == 3)
+                            if (type == 3 || type == 4)
                             {
                                 double fullbbH = fullbb.height();
                                 double fullbbW = fullbb.width();
@@ -935,7 +930,7 @@ private:
                                 score = score * 0.5 + area_score * 0.5;
                             }
 
-                            if (type == 10)
+                            if (type == 5)
                             {
                                 double score_mid = fabs(ibb.center().X - binW / 2) / binW;
                                 score = score * 0.5 + score_mid * 0.5;
@@ -1164,7 +1159,7 @@ private:
                     global_score = best_score;
                 }
 
-                if (rot.toDegrees() == 0.f && can_pack && (!bNest2d || type == 10))
+                if (rot.toDegrees() == 0.f && can_pack && (!bNest2d || type == 4 || type == 5))
                     break;
             }
 
