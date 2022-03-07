@@ -30,6 +30,11 @@ set(LIBNEST2D_SRCFILES
     )
 
 set(LIBS clipper3r nlopt)
+
+if(TARGET  OpenMP::OpenMP_CXX)
+	message(STATUS "build libnest2d use openmp")
+	list(APPEND LIBS OpenMP::OpenMP_CXX)
+endif()
 set(DEFS LIBNEST2D_STATIC LIBNEST2D_OPTIMIZER_nlopt LIBNEST2D_GEOMETRIES_clipper)
 
 if(TARGET tbb)
