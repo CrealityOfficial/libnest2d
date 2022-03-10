@@ -2,6 +2,8 @@ __cc_find(Clipper3r)
 __assert_target(clipper3r)
 __cc_find(Nlopt)
 __assert_target(nlopt)
+__cc_find(Boost)
+__assert_target(boost_system)
 
 set(LIBNEST2D_SRCFILES
     include/libnest2d/libnest2d.hpp
@@ -29,7 +31,7 @@ set(LIBNEST2D_SRCFILES
     src/libnest2d.cpp
     )
 
-set(LIBS clipper3r nlopt)
+set(LIBS clipper3r nlopt boost_system)
 set(DEFS LIBNEST2D_STATIC LIBNEST2D_OPTIMIZER_nlopt LIBNEST2D_GEOMETRIES_clipper)
 
 if(TARGET tbb)
@@ -39,6 +41,6 @@ endif()
 __add_real_target(libnest2d lib SOURCE ${LIBNEST2D_SRCFILES}
 								LIB ${LIBS}
 								DEF ${DEFS}
-								INC ${CMAKE_CURRENT_SOURCE_DIR}/include/ ${BOOST_INCLUDE_DIRS}
+								INC ${CMAKE_CURRENT_SOURCE_DIR}/include/
 								INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
