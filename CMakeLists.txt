@@ -1,6 +1,6 @@
-__cc_find(Clipper3r)
+#__cc_find(Clipper3r)
 __assert_target(clipper3r)
-__cc_find(Nlopt)
+#__cc_find(Nlopt)
 __assert_target(nlopt)
 __cc_find(Boost)
 
