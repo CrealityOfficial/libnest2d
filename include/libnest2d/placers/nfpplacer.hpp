@@ -14,6 +14,7 @@
 #endif
 #include <libnest2d/geometry_traits_nfp.hpp>
 #include <libnest2d/optimizer.hpp>
+#include <libnest2d/nfp/libnfporb.hpp>
 
 #include "placer_boilerplate.hpp"
 
@@ -620,6 +621,86 @@ private:
         return nfp::merge(nfps);
     }
 
+    static std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> getSubnfp(Clipper3r::Path nfp_path)
+    {
+        libnfporb::polygon_t NFP;
+        bg::append(NFP.outer(), nfp_path);
+        std::vector<libnfporb::psize_t> ynfpmaxI = libnfporb::find_maximum_y(NFP);
+        libnfporb::coord_t maxX = libnfporb::MIN_COORD;
+        libnfporb::psize_t iRightMost = 0;
+        for (libnfporb::psize_t& ia : ynfpmaxI) {
+            const libnfporb::point_t& candidateNFP = NFP.outer()[ia];
+            if (libnfporb::larger(candidateNFP.x_, maxX)) {
+                maxX = candidateNFP.x_;
+                iRightMost = ia;
+            }
+        }
+        libnfporb::point_t referencePoint = NFP.outer()[iRightMost];
+        Clipper3r::Polygon nfp_shape(nfp_path);
+        return { nfp_shape, Clipper3r::IntPoint(referencePoint.x_.val(), referencePoint.y_.val()) };
+    }
+
+    Shapes calcnfp_CONCAVE(const Item& trsh)
+    {
+        using namespace nfp;
+
+        Shapes nfps;
+        nfps.reserve(items_.size());
+
+        // /////////////////////////////////////////////////////////////////////
+        // TODO: this is a workaround and should be solved in Item with mutexes
+        // guarding the mutable members when writing them.
+        // /////////////////////////////////////////////////////////////////////
+        trsh.transformedShape();
+        trsh.referenceVertex();
+        trsh.rightmostTopVertex();
+        trsh.leftmostBottomVertex();
+
+        for (Item& itm : items_) {
+            itm.transformedShape();
+            itm.referenceVertex();
+            itm.rightmostTopVertex();
+            itm.leftmostBottomVertex();
+        }
+        // /////////////////////////////////////////////////////////////////////
+        std::launch policy = std::launch::deferred;
+        if (config_.parallel) policy |= std::launch::async;
+
+        __parallel::enumerate(items_.begin(), items_.end(),
+            [&nfps, &trsh](const Item& sh, size_t n)
+            {
+                auto& fixedp = sh.transformedShape();
+                auto& orbp = trsh.transformedShape();
+                libnfporb::polygon_t pA;
+                bg::append(pA.outer(), fixedp.Contour);
+                libnfporb::polygon_t pB;
+                bg::append(pB.outer(), orbp.Contour);
+                libnfporb::nfp_t nfp = libnfporb::generate_nfp(pA, pB);
+                //libnfporb::polygon_t pnfp;
+                //bg::append(pnfp.outer(), nfp[0]);
+                //libnfporb::write_svg("C://Users//107661//Desktop//nfp.svg", pA, pB, nfp);
+                for (int num = 0; num < nfp.size(); num++)
+                {
+                    Clipper3r::Path nfp_path;
+                    nfp_path.resize(nfp[num].size());
+                    for (int i = 0; i < nfp[num].size(); i++)
+                    {
+                        nfp_path[i].X = Clipper3r::cInt(nfp[num][i].x_.val());
+                        nfp_path[i].Y = Clipper3r::cInt(nfp[num][i].y_.val());
+                    }
+                    if (Clipper3r::Orientation(nfp_path))
+                    {
+                        Clipper3r::ReversePath(nfp_path);
+                    }
+                    std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
+                    subnfp_r = getSubnfp(nfp_path);
+                    correctNfpPosition(subnfp_r, sh, trsh);
+                    nfps.push_back(subnfp_r.first);
+                }
+            }, policy);
+
+        return nfp::merge(nfps);
+    }
 
     template<class Level>
     Shapes calcnfp(const Item &trsh, Level)
@@ -843,7 +924,10 @@ private:
                 // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
 
-                nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
+                if (type == 6)
+                    nfps = calcnfp_CONCAVE(item);
+                else
+                    nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
 
                 auto iv = item.referenceVertex();
 
@@ -911,9 +995,11 @@ private:
                             case 4:score = pl::distance(ibb.center(),                           
                                 binbb.center()) / norm_pdd; break;
                             case 5:score = (binH - ibb.center().Y) / binH; break;
+                            case 6:score = pl::distance(ibb.center(),
+                                binbb.center()) / norm_pdd; break;
                             }
 
-                            if (type == 3 || type == 4)
+                            if (type == 3 || type == 4 || type == 6)
                             {
                                 double fullbbH = fullbb.height();
                                 double fullbbW = fullbb.width();
