@@ -1,6 +1,6 @@
-#__cc_find(Clipper3r)
+__cc_find(Clipper3r)
 __assert_target(clipper3r)
-#__cc_find(Nlopt)
+__cc_find(Nlopt)
 __assert_target(nlopt)
 #__cc_find(Boost)
 
@@ -32,15 +32,6 @@ set(LIBNEST2D_SRCFILES
     )
 
 set(LIBS clipper3r nlopt)
-if(TARGET boost_system)
-	list(APPEND LIBS boost_system)
-endif()
-
-if(TARGET  OpenMP::OpenMP_CXX)
-	message(STATUS "build libnest2d use openmp")
-	list(APPEND LIBS OpenMP::OpenMP_CXX)
-endif()
-
 set(DEFS LIBNEST2D_STATIC LIBNEST2D_OPTIMIZER_nlopt LIBNEST2D_GEOMETRIES_clipper)
 set(INCS ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 if(BOOST_INCLUDE_DIRS)
