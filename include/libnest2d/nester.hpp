@@ -70,6 +70,7 @@ class _Item {
     
     int binid_{BIN_ID_UNSET}, priority_{0};
     bool fixed_{false};
+    bool convex_cal_{true};
 
 public:
 
@@ -140,6 +141,9 @@ public:
     
     inline void priority(int p) { priority_ = p; }
     inline int priority() const noexcept { return priority_; }
+
+    inline void convexCal(bool convex_cal) { convex_cal_ = convex_cal; }
+    inline bool convexCal() const noexcept { return convex_cal_; }
 
     /**
      * @brief Convert the polygon to string representation. The format depends
@@ -433,7 +437,7 @@ private:
 
             inflate_cache_ = sh_;
             sl::offset(inflate_cache_, inflation_);
-            inflate_cache_.Contour = sl::convexHull(inflate_cache_.Contour); //保证放大后还是凸包
+            if (convex_cal_) inflate_cache_.Contour = sl::convexHull(inflate_cache_.Contour); //保证放大后还是凸包
             inflate_cache_valid_ = true;
             return inflate_cache_;
         }

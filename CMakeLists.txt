@@ -2,7 +2,7 @@ __cc_find(Clipper3r)
 __assert_target(clipper3r)
 __cc_find(Nlopt)
 __assert_target(nlopt)
-__cc_find(Boost)
+#__cc_find(Boost)
 
 set(LIBNEST2D_SRCFILES
     include/libnest2d/libnest2d.hpp
@@ -28,6 +28,7 @@ set(LIBNEST2D_SRCFILES
     include/libnest2d/optimizers/nlopt/subplex.hpp
     include/libnest2d/optimizers/nlopt/genetic.hpp
     src/libnest2d.cpp
+    include/libnest2d/nfp/libnfporb.hpp
     )
 
 set(LIBS clipper3r nlopt)
