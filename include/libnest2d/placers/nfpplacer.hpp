@@ -644,8 +644,8 @@ private:
     {
         using namespace nfp;
 
-        Shapes nfps;
-        nfps.reserve(items_.size());
+        Shapes nfps(items_.size());
+        //nfps.reserve(items_.size());
 
         // /////////////////////////////////////////////////////////////////////
         // TODO: this is a workaround and should be solved in Item with mutexes
@@ -676,17 +676,15 @@ private:
                 libnfporb::polygon_t pB;
                 bg::append(pB.outer(), orbp.Contour);
                 libnfporb::nfp_t nfp = libnfporb::generate_nfp(pA, pB);
-                //libnfporb::polygon_t pnfp;
-                //bg::append(pnfp.outer(), nfp[0]);
-                //libnfporb::write_svg("C://Users//107661//Desktop//nfp.svg", pA, pB, nfp);
-                for (int num = 0; num < nfp.size(); num++)
+                //libnfporb::write_svg("C://Users//107661//Desktop//nfp.svg", pA, pB);
+                //for (int num = 0; num < nfp.size(); num++)
                 {
                     Clipper3r::Path nfp_path;
-                    nfp_path.resize(nfp[num].size());
-                    for (int i = 0; i < nfp[num].size(); i++)
+                    nfp_path.resize(nfp[0].size());
+                    for (int i = 0; i < nfp[0].size(); i++)
                     {
-                        nfp_path[i].X = Clipper3r::cInt(nfp[num][i].x_.val());
-                        nfp_path[i].Y = Clipper3r::cInt(nfp[num][i].y_.val());
+                        nfp_path[i].X = Clipper3r::cInt(nfp[0][i].x_.val());
+                        nfp_path[i].Y = Clipper3r::cInt(nfp[0][i].y_.val());
                     }
                     if (Clipper3r::Orientation(nfp_path))
                     {
@@ -695,7 +693,7 @@ private:
                     std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
                     subnfp_r = getSubnfp(nfp_path);
                     correctNfpPosition(subnfp_r, sh, trsh);
-                    nfps.push_back(subnfp_r.first);
+                    nfps[n] = subnfp_r.first;
                 }
             }, policy);
 
@@ -978,7 +976,7 @@ private:
 
                     if (bNest2d)
                     {
-                        _objfunc = [norm, binbb, pbb, ins_check, type, pile_area](const Item& item)
+                        _objfunc = [norm, binbb, pbb, ins_check, type, pile_area, merged_pile](const Item& item)
                         {
                             auto ibb = item.boundingBox();
                             auto fullbb = sl::boundingBox(pbb, ibb);
@@ -992,15 +990,9 @@ private:
                             switch (type)
                             {
                             case 3:
-                            case 4:score = pl::distance(ibb.center(),                           
-                                binbb.center()) / norm_pdd; break;
-                            case 5:score = (binH - ibb.center().Y) / binH; break;
-                            case 6:score = pl::distance(ibb.center(),
-                                binbb.center()) / norm_pdd; break;
-                            }
-
-                            if (type == 3 || type == 4 || type == 6)
-                            {
+                            case 4: {
+                                score = pl::distance(ibb.center(),
+                                    binbb.center()) / norm_pdd;
                                 double fullbbH = fullbb.height();
                                 double fullbbW = fullbb.width();
                                 double fullbbH_cal = fullbbW / binW * binH;
@@ -1008,18 +1000,24 @@ private:
                                 fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
                                 fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
                                 double totalArea = fullbbH * fullbbW;
-
                                 double area_score = 1 - pile_area / totalArea;//最小面积加权
-                                if (pbb_area == fullbb_area) 
+                                if (pbb_area == fullbb_area)
                                     area_score = 0;
-
                                 score = score * 0.5 + area_score * 0.5;
-                            }
-
-                            if (type == 5)
-                            {
+                            }break;
+                            case 5: {
+                                score = (binH - ibb.center().Y) / binH;
                                 double score_mid = fabs(ibb.center().X - binW / 2) / binW;
                                 score = score * 0.5 + score_mid * 0.5;
+                            }break;
+                            case 6: {
+                                auto item_path = item.transformedShape().Contour;
+                                for (auto& shape : merged_pile)
+                                    item_path.insert(item_path.end(), shape.Contour.begin(), shape.Contour.end());
+                                auto all_path = libnest2d::shapelike::convexHull(item_path);
+                                double area = fabs(Clipper3r::Area(all_path));
+                                score = 1 - (pile_area + item.area()) / area;
+                            }break;
                             }
 
                             score += ins_check(fullbb);

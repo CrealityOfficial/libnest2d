@@ -144,6 +144,7 @@ public:
 
     inline void convexCal(bool convex_cal) { convex_cal_ = convex_cal; }
     inline bool convexCal() const noexcept { return convex_cal_; }
+    inline RawShape trCache() const noexcept { return tr_cache_; }
 
     /**
      * @brief Convert the polygon to string representation. The format depends

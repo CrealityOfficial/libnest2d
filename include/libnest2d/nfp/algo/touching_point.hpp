@@ -18,7 +18,8 @@ struct TouchingPoint {
 	enum Type {
 		VERTEX,//!< VERTEX
 		A_ON_B,//!< A_ON_B
-		B_ON_A //!< B_ON_A
+		B_ON_A, //!< B_ON_A
+		NULLTYPE
 	};
 	Type type_;
 	/**
@@ -29,6 +30,19 @@ struct TouchingPoint {
 	 * The index of the touching point in ringB
 	 */
 	psize_t B_;
+	TouchingPoint()
+	{
+		type_ = NULLTYPE;
+		A_ = -1;
+		B_ = -1;
+	}
+
+	TouchingPoint(Type type, psize_t a, psize_t b)
+	{
+		type_ = type;
+		A_ = a;
+		B_ = b;
+	}
 };
 
 /**
@@ -38,24 +52,33 @@ struct TouchingPoint {
  * @return A %vector of %TouchingPoint objects
  */
 std::vector<TouchingPoint> find_touching_points(const polygon_t::ring_type& ringA, const polygon_t::ring_type& ringB) {
-	std::vector<TouchingPoint> touchers;
-	for (psize_t i = 0; i < ringA.size() - 1; i++) {
+	std::vector<TouchingPoint> touchers(ringA.size());
+#pragma omp parallel for
+	for (int i = 0; i < ringA.size() - 1; i++) {
+		psize_t idx_i = i;
 		psize_t nextI = i + 1;
 		for (psize_t j = 0; j < ringB.size() - 1; j++) {
 			psize_t nextJ = j + 1;
 			if (equals(ringA[i], ringB[j])) {
 				DEBUG_MSG("vertex", segment_t(ringA[i],ringB[j]));
-				touchers.push_back( { TouchingPoint::VERTEX, i, j });
+				touchers[i] = TouchingPoint(TouchingPoint::VERTEX, idx_i, j);
 			} else if (!equals(ringA[nextI], ringB[j]) && bg::intersects(segment_t(ringA[i], ringA[nextI]), ringB[j])) {
 				DEBUG_MSG("bona", segment_t(ringA[i],ringB[j]));
-				touchers.push_back( { TouchingPoint::B_ON_A, nextI, j });
+				touchers[i] = TouchingPoint(TouchingPoint::B_ON_A, nextI, j);
 			} else if (!equals(ringB[nextJ], ringA[i]) && bg::intersects(segment_t(ringB[j], ringB[nextJ]), ringA[i])) {
 				DEBUG_MSG("aonb", segment_t(ringA[i],ringB[j]));
-				touchers.push_back( { TouchingPoint::A_ON_B, i, nextJ });
+				touchers[i] = TouchingPoint(TouchingPoint::A_ON_B, idx_i, nextJ);
 			}
 		}
 	}
-	return touchers;
+	std::vector<TouchingPoint> touchers_dst;
+	for (int i = 0; i < touchers.size(); i++)
+	{
+		if (touchers[i].type_ != TouchingPoint::NULLTYPE)
+			touchers_dst.push_back(touchers[i]);
+	}
+
+	return touchers_dst;
 }
 }
 

@@ -139,14 +139,23 @@ void write_svg(std::string const& filename, const polygon_t& pA, const polygon_t
 	}
 }
 
-void write_svg(std::string const& filename, const polygon_t& pA) {
+void write_svg(std::string const& filename, const polygon_t& pA, const polygon_t& pB = polygon_t(), const polygon_t& pC = polygon_t()) {
 
 	std::ofstream svg(filename.c_str());
 
 	boost::geometry::svg_mapper<pointf_t> mapper(svg, 100, 100, "width=\"200mm\" height=\"200mm\" viewBox=\"-250 -250 500 500\" style=\"background-color:white\"");
+	
 	auto pAf = convert(pA);
 	mapper.add(pAf);
 	mapper.map(pAf, "fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:0");
+
+	auto pBf = convert(pB);
+	mapper.add(pBf);
+	mapper.map(pBf, "fill-opacity:0.5;fill:rgb(204,153,0);stroke:rgb(204,153,0);stroke-width:0");
+
+	auto pCf = convert(pC);
+	mapper.add(pCf);
+	mapper.map(pCf, "fill-opacity:0.5;fill:rgb(0,153,204);stroke:rgb(0,153,204);stroke-width:0");
 }
 }
 

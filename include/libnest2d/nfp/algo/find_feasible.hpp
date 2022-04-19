@@ -19,7 +19,7 @@ std::vector<TranslationVector> find_feasible_translation_vectors(polygon_t::ring
 	std::vector<TranslationVector> potentialVectors;
 	std::vector<std::pair<segment_t, segment_t>> touchEdges;
 
-	for (psize_t i = 0; i < touchers.size(); i++) {
+	for (int i = 0; i < touchers.size(); i++) {
 		point_t& vertexA = ringA[touchers[i].A_];
 		vertexA.marked_ = true;
 
