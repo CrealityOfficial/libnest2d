@@ -990,6 +990,7 @@ private:
                             switch (type)
                             {
                             case 3:
+                            case 6:
                             case 4: {
                                 score = pl::distance(ibb.center(),
                                     binbb.center()) / norm_pdd;
@@ -1010,14 +1011,17 @@ private:
                                 double score_mid = fabs(ibb.center().X - binW / 2) / binW;
                                 score = score * 0.5 + score_mid * 0.5;
                             }break;
-                            case 6: {
-                                auto item_path = item.transformedShape().Contour;
-                                for (auto& shape : merged_pile)
-                                    item_path.insert(item_path.end(), shape.Contour.begin(), shape.Contour.end());
-                                auto all_path = libnest2d::shapelike::convexHull(item_path);
-                                double area = fabs(Clipper3r::Area(all_path));
-                                score = 1 - (pile_area + item.area()) / area;
-                            }break;
+                            //case 6: {
+                            //    score = pl::distance(ibb.center(),
+                            //        binbb.center()) / norm_pdd;
+                            //    auto item_path = item.transformedShape().Contour;
+                            //    for (auto& shape : merged_pile)
+                            //        item_path.insert(item_path.end(), shape.Contour.begin(), shape.Contour.end());
+                            //    auto all_path = libnest2d::shapelike::convexHull(item_path);
+                            //    double area = fabs(Clipper3r::Area(all_path));
+                            //    double area_score = 1 - (pile_area + item.area()) / area;
+                            //    score = score * 0.5 + area_score * 0.5;
+                            //}break;
                             }
 
                             score += ins_check(fullbb);
