@@ -905,7 +905,6 @@ private:
                 if (can_pack) break;
             }
         } else {
-
             double global_score = std::numeric_limits<double>::max();
 
             Vertex final_tr = {0, 0};
@@ -1238,7 +1237,7 @@ private:
                     }
                 }
 
-                if( best_score < global_score ) {
+                if( best_score < global_score && fabs(best_score - global_score) > 0.0001) {
                     auto d = getNfpPoint(optimum) - iv;
                     d += startpos;
                     final_tr = d;
