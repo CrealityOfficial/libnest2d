@@ -50,3 +50,6 @@ __add_real_target(libnest2d lib SOURCE ${LIBNEST2D_SRCFILES}
 								INC ${INCS}
 								INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
+if(CC_INSTALL_LIBNEST2D)
+	__install_directory_specif(${CMAKE_CURRENT_SOURCE_DIR}/include/ libnest2d)
+endif()
