@@ -1024,22 +1024,22 @@ private:
                             case 7: {
                                 score = fabs(binH - ibb.center().Y) / binH;
                                 double score_left = ibb.center().X / binW;
-                                score = score * 0.8 + score_left * 0.2;
+                                score = score * 0.9 + score_left * 0.1;
                             }break;
                             case 8: {
                                 score = ibb.center().Y / binH;
                                 double score_left = ibb.center().X / binW;
-                                score = score * 0.8 + score_left * 0.2;
+                                score = score * 0.9 + score_left * 0.1;
                             }break;
                             case 9: {
                                 score = ibb.center().X / binW;
                                 double score_top = fabs(binH - ibb.center().Y) / binH;
-                                score = score * 0.8 + score_top * 0.2;
+                                score = score * 0.9 + score_top * 0.1;
                             }break;
                             case 10: {
                                 score = fabs(binW - ibb.center().X) / binW;
                                 double score_top = fabs(binH - ibb.center().Y) / binH;
-                                score = score * 0.8 + score_top * 0.2;
+                                score = score * 0.9 + score_top * 0.1;
                             }break;
 
                             }
