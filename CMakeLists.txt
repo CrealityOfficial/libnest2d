@@ -1,10 +1,8 @@
 set(CMAKE_CXX_STANDARD 14)
 
 __cc_find(Clipper3r)
-#__assert_target(clipper3r)
 __cc_find(Nlopt)
-#__assert_target(nlopt)
-#__cc_find(Boost)
+__cc_find(Boost)
 
 set(LIBNEST2D_SRCFILES
     include/libnest2d/libnest2d.hpp
