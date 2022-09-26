@@ -15,6 +15,7 @@
 #include <libnest2d/geometry_traits_nfp.hpp>
 #include <libnest2d/optimizer.hpp>
 #include <libnest2d/nfp/libnfporb.hpp>
+#include <polygonLib/polygonLib.h>"
 
 #include "placer_boilerplate.hpp"
 
@@ -640,12 +641,70 @@ private:
         return { nfp_shape, Clipper3r::IntPoint(referencePoint.x_.val(), referencePoint.y_.val()) };
     }
 
+    //Shapes calcnfp_CONCAVE(const Item& trsh)
+    //{
+    //    using namespace nfp;
+
+    //    Shapes nfps(items_.size());
+
+    //    // /////////////////////////////////////////////////////////////////////
+    //    // TODO: this is a workaround and should be solved in Item with mutexes
+    //    // guarding the mutable members when writing them.
+    //    // /////////////////////////////////////////////////////////////////////
+    //    trsh.transformedShape();
+    //    trsh.referenceVertex();
+    //    trsh.rightmostTopVertex();
+    //    trsh.leftmostBottomVertex();
+
+    //    for (Item& itm : items_) {
+    //        itm.transformedShape();
+    //        itm.referenceVertex();
+    //        itm.rightmostTopVertex();
+    //        itm.leftmostBottomVertex();
+    //    }
+    //    // /////////////////////////////////////////////////////////////////////
+    //    std::launch policy = std::launch::deferred;
+    //    if (config_.parallel) policy |= std::launch::async;
+
+    //    __parallel::enumerate(items_.begin(), items_.end(),
+    //        [&nfps, &trsh](const Item& sh, size_t n)
+    //        {
+    //            auto& fixedp = sh.transformedShape();
+    //            auto& orbp = trsh.transformedShape();
+    //            libnfporb::polygon_t pA;
+    //            bg::append(pA.outer(), polygonLib::PolygonPro::polygonSimplyfy(fixedp.Contour, 100));
+    //            libnfporb::polygon_t pB;
+    //            bg::append(pB.outer(), polygonLib::PolygonPro::polygonSimplyfy(orbp.Contour, 100));
+    //            libnfporb::nfp_t nfp = libnfporb::generate_nfp(pA, pB);
+    //            libnfporb::write_svg("C://Users//107661//Desktop//nfp.svg", pA, pB);
+    //            //for (int num = 0; num < nfp.size(); num++)
+    //            {
+    //                Clipper3r::Path nfp_path;
+    //                nfp_path.resize(nfp[0].size());
+    //                for (int i = 0; i < nfp[0].size(); i++)
+    //                {
+    //                    nfp_path[i].X = Clipper3r::cInt(nfp[0][i].x_.val());
+    //                    nfp_path[i].Y = Clipper3r::cInt(nfp[0][i].y_.val());
+    //                }
+    //                if (Clipper3r::Orientation(nfp_path))
+    //                {
+    //                    Clipper3r::ReversePath(nfp_path);
+    //                }
+    //                std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
+    //                subnfp_r = getSubnfp(nfp_path);
+    //                correctNfpPosition(subnfp_r, sh, trsh);
+    //                nfps[n] = subnfp_r.first;
+    //            }
+    //        }, policy);
+
+    //    return nfp::merge(nfps);
+    //}
+
     Shapes calcnfp_CONCAVE(const Item& trsh)
     {
         using namespace nfp;
 
-        Shapes nfps(items_.size());
-        //nfps.reserve(items_.size());
+        Clipper3r::Paths itemsPaths;
 
         // /////////////////////////////////////////////////////////////////////
         // TODO: this is a workaround and should be solved in Item with mutexes
@@ -661,42 +720,52 @@ private:
             itm.referenceVertex();
             itm.rightmostTopVertex();
             itm.leftmostBottomVertex();
+            itemsPaths.emplace_back(itm.transformedShape().Contour);
         }
-        // /////////////////////////////////////////////////////////////////////
-        std::launch policy = std::launch::deferred;
-        if (config_.parallel) policy |= std::launch::async;
 
-        __parallel::enumerate(items_.begin(), items_.end(),
-            [&nfps, &trsh](const Item& sh, size_t n)
+        Clipper3r::Path itemsConcaveHull;
+        if (itemsPaths.size() > 1)
+        {
+            itemsConcaveHull = polygonLib::PolygonPro::polygonsConcaveHull(itemsPaths, 0.2);
+            itemsConcaveHull = polygonLib::PolygonPro::polygonSimplyfy(itemsConcaveHull, 100);
+        }
+        else
+            itemsConcaveHull = polygonLib::PolygonPro::polygonSimplyfy(itemsPaths[0], 100);
+
+        Item sh(itemsConcaveHull);
+        auto& orbp = trsh.transformedShape();
+        libnfporb::polygon_t pA;
+        bg::append(pA.outer(), itemsConcaveHull);
+        libnfporb::polygon_t pB;
+        bg::append(pB.outer(), polygonLib::PolygonPro::polygonSimplyfy(orbp.Contour, 100));
+        //libnfporb::write_svg("C://Users//107661//Desktop//nfp.svg", pA, pB);
+        libnfporb::nfp_t nfpt = libnfporb::generate_nfp(pA, pB);
+
+        Shapes nfps(nfpt.size());
+        for (int num = 0; num < nfpt.size(); num++)
+        {
+            Clipper3r::Path nfp_path;
+
+            nfp_path.resize(nfpt[num].size());
+            for (int i = 0; i < nfpt[num].size(); i++)
             {
-                auto& fixedp = sh.transformedShape();
-                auto& orbp = trsh.transformedShape();
-                libnfporb::polygon_t pA;
-                bg::append(pA.outer(), fixedp.Contour);
-                libnfporb::polygon_t pB;
-                bg::append(pB.outer(), orbp.Contour);
-                libnfporb::nfp_t nfp = libnfporb::generate_nfp(pA, pB);
-                //libnfporb::write_svg("C://Users//107661//Desktop//nfp.svg", pA, pB);
-                //for (int num = 0; num < nfp.size(); num++)
-                {
-                    Clipper3r::Path nfp_path;
-                    nfp_path.resize(nfp[0].size());
-                    for (int i = 0; i < nfp[0].size(); i++)
-                    {
-                        nfp_path[i].X = Clipper3r::cInt(nfp[0][i].x_.val());
-                        nfp_path[i].Y = Clipper3r::cInt(nfp[0][i].y_.val());
-                    }
-                    if (Clipper3r::Orientation(nfp_path))
-                    {
-                        Clipper3r::ReversePath(nfp_path);
-                    }
-                    std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
-                    subnfp_r = getSubnfp(nfp_path);
-                    correctNfpPosition(subnfp_r, sh, trsh);
-                    nfps[n] = subnfp_r.first;
-                }
-            }, policy);
-
+                nfp_path[i].X = Clipper3r::cInt(nfpt[num][i].x_.val());
+                nfp_path[i].Y = Clipper3r::cInt(nfpt[num][i].y_.val());
+            }
+            if (nfp_path.size() < 3)
+            {
+                nfp_path.push_back(Clipper3r::IntPoint(nfp_path[0].X + 1, nfp_path[0].Y));
+                nfp_path.push_back(Clipper3r::IntPoint(nfp_path[0].X + 1, nfp_path[0].Y + 1));
+            }
+            if (Clipper3r::Orientation(nfp_path))
+            {
+                Clipper3r::ReversePath(nfp_path);
+            }
+            std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
+            subnfp_r = getSubnfp(nfp_path);
+            correctNfpPosition(subnfp_r, sh, trsh);
+            nfps[num] = subnfp_r.first;
+        }
         return nfp::merge(nfps);
     }
 
@@ -867,6 +936,7 @@ private:
         bool bNest2d = false;
         bool can_pack = false;
         bool pack_out = false;
+
         double best_overfit = std::numeric_limits<double>::max();
         auto& bin = bin_;
         auto binbb = sl::boundingBox(bin);
@@ -875,7 +945,6 @@ private:
         if(remaining.valid) {
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
-
         if (config_.object_function)
         {
             std::function<double(const Item&)> geTypeFunction;
@@ -894,6 +963,7 @@ private:
             return ret;
         }
 
+        bool pair_pack = ((remlist.size() + items_.size()) < 2);
         auto initial_tr = item.translation();
         auto initial_rot = item.rotation();
         if(items_.empty()) {
@@ -975,7 +1045,7 @@ private:
 
                     if (bNest2d)
                     {
-                        _objfunc = [norm, binbb, pbb, ins_check, type, pile_area, merged_pile](const Item& item)
+                        _objfunc = [norm, binbb, pbb, ins_check, type, pile_area, merged_pile, pair_pack](const Item& item)
                         {
                             auto ibb = item.boundingBox();
                             auto fullbb = sl::boundingBox(pbb, ibb);
@@ -989,7 +1059,6 @@ private:
                             switch (type)
                             {
                             case 3:
-                            case 6:
                             case 4: {
                                 score = pl::distance(ibb.center(),
                                     binbb.center()) / norm_pdd;
@@ -1010,17 +1079,30 @@ private:
                                 double score_mid = fabs(ibb.center().X - binW / 2) / binW;
                                 score = score * 0.5 + score_mid * 0.5;
                             }break;
-                            //case 6: {
-                            //    score = pl::distance(ibb.center(),
-                            //        binbb.center()) / norm_pdd;
-                            //    auto item_path = item.transformedShape().Contour;
-                            //    for (auto& shape : merged_pile)
-                            //        item_path.insert(item_path.end(), shape.Contour.begin(), shape.Contour.end());
-                            //    auto all_path = libnest2d::shapelike::convexHull(item_path);
-                            //    double area = fabs(Clipper3r::Area(all_path));
-                            //    double area_score = 1 - (pile_area + item.area()) / area;
-                            //    score = score * 0.5 + area_score * 0.5;
-                            //}break;
+                            case 6: {
+                                if (pair_pack)
+                                {
+                                    score = pl::distance(ibb.center(),
+                                        binbb.center()) / norm_pdd;
+                                    double fullbbH = fullbb.height();
+                                    double fullbbW = fullbb.width();
+                                    double fullbbH_cal = fullbbW / binW * binH;
+                                    double fullbbW_cal = fullbbH / binH * binW;
+                                    fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                                    fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                                    double totalArea = fullbbH * fullbbW;
+                                    double area_score = 1 - pile_area / totalArea;//最小面积加权
+                                    if (pbb_area == fullbb_area)
+                                        area_score = 0;
+                                    score = score * 0.2 + area_score * 0.8;
+                                }
+                                else
+                                {
+                                    score = ibb.center().Y / binH;
+                                    double score_left = ibb.center().X / binW;
+                                    score = score * 0.9 + score_left * 0.1;
+                                }
+                            }break;
                             case 7: {
                                 score = fabs(binH - ibb.center().Y) / binH;
                                 double score_left = ibb.center().X / binW;
@@ -1029,7 +1111,7 @@ private:
                             case 8: {
                                 score = ibb.center().Y / binH;
                                 double score_left = ibb.center().X / binW;
-                                score = score * 0.9 + score_left * 0.1;
+                                score = score * 0.7 + score_left * 0.3;
                             }break;
                             case 9: {
                                 score = ibb.center().X / binW;

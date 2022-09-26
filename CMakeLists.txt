@@ -33,7 +33,7 @@ set(LIBNEST2D_SRCFILES
     include/libnest2d/nfp/libnfporb.hpp
     )
 
-set(LIBS clipper3r nlopt)
+set(LIBS clipper3r nlopt polygonLib)
 set(DEFS LIBNEST2D_STATIC LIBNEST2D_OPTIMIZER_nlopt LIBNEST2D_GEOMETRIES_clipper)
 set(INCS ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 if(BOOST_INCLUDE_DIRS)
