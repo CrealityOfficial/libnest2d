@@ -122,10 +122,12 @@ nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true
 	if (checkValidity) {
 		std::string reason;
 		if (!bg::is_valid(pA, reason))
-			throw std::runtime_error("Polygon A is invalid: " + reason);
+			DEBUG_VAL("Polygon A is invalid: " + reason);
+			//throw std::runtime_error("Polygon A is invalid: " + reason);
 
 		if (!bg::is_valid(pB, reason))
-			throw std::runtime_error("Polygon B is invalid: " + reason);
+			DEBUG_VAL("Polygon B is invalid: " + reason);
+			//throw std::runtime_error("Polygon B is invalid: " + reason);
 	}
 
 	nfp_t nfp;
@@ -178,7 +180,8 @@ nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true
 
 	SlideResult res;
 	if ((res = slide(pA, pA.outer(), pB.outer(), nfp, transB, false))!= LOOP) {
-		throw std::runtime_error("Unable to complete outer nfp loop: " + std::to_string(res));
+		DEBUG_VAL("Unable to complete outer nfp loop: " + std::to_string(res));
+		//throw std::runtime_error("Unable to complete outer nfp loop: " + std::to_string(res));
 	}
 
 	DEBUG_VAL("##### outer #####");

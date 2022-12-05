@@ -94,7 +94,8 @@ SlideResult slide(polygon_t& pA, polygon_t::ring_type& rA, polygon_t::ring_type&
 		write_svg("next" + std::to_string(cnt) + ".svg", pA,rB);
 #endif
 		if(bg::overlaps(pA, rB))
-			throw std::runtime_error("Internal error: Slide resulted in overlap");
+			DEBUG_VAL("Internal error: Slide resulted in overlap");
+		//	throw std::runtime_error("Internal error: Slide resulted in overlap");
 
 		++cnt;
 		if (equals(referenceStart, rB.front()) || (inside && bg::touches(rB.front(), nfp.front()))) {

@@ -15,6 +15,7 @@
 #include <libnest2d/geometry_traits_nfp.hpp>
 #include <libnest2d/optimizer.hpp>
 #include <libnest2d/nfp/libnfporb.hpp>
+#include <polygonLib/polygonLib.h>"
 
 #include "placer_boilerplate.hpp"
 
@@ -621,31 +622,18 @@ private:
         return nfp::merge(nfps);
     }
 
-    static std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> getSubnfp(Clipper3r::Path nfp_path)
+    std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> getSubnfp(Clipper3r::Path nfp_path)
     {
-        libnfporb::polygon_t NFP;
-        bg::append(NFP.outer(), nfp_path);
-        std::vector<libnfporb::psize_t> ynfpmaxI = libnfporb::find_maximum_y(NFP);
-        libnfporb::coord_t maxX = libnfporb::MIN_COORD;
-        libnfporb::psize_t iRightMost = 0;
-        for (libnfporb::psize_t& ia : ynfpmaxI) {
-            const libnfporb::point_t& candidateNFP = NFP.outer()[ia];
-            if (libnfporb::larger(candidateNFP.x_, maxX)) {
-                maxX = candidateNFP.x_;
-                iRightMost = ia;
-            }
-        }
-        libnfporb::point_t referencePoint = NFP.outer()[iRightMost];
+        Item nfpsh(nfp_path);
         Clipper3r::Polygon nfp_shape(nfp_path);
-        return { nfp_shape, Clipper3r::IntPoint(referencePoint.x_.val(), referencePoint.y_.val()) };
+        return { nfp_shape, nfpsh.referenceVertex() };
     }
 
-    Shapes calcnfp_CONCAVE(const Item& trsh)
+    Shapes calcnfp_CONCAVE(const Item& trsh, Vertex& trshrv)
     {
         using namespace nfp;
 
-        Shapes nfps(items_.size());
-        //nfps.reserve(items_.size());
+        Clipper3r::Paths itemsPaths;
 
         // /////////////////////////////////////////////////////////////////////
         // TODO: this is a workaround and should be solved in Item with mutexes
@@ -661,43 +649,52 @@ private:
             itm.referenceVertex();
             itm.rightmostTopVertex();
             itm.leftmostBottomVertex();
+            itemsPaths.emplace_back(itm.transformedShape().Contour);
         }
-        // /////////////////////////////////////////////////////////////////////
-        std::launch policy = std::launch::deferred;
-        if (config_.parallel) policy |= std::launch::async;
 
-        __parallel::enumerate(items_.begin(), items_.end(),
-            [&nfps, &trsh](const Item& sh, size_t n)
+        Clipper3r::Path itemsConcaveHull;
+        if (itemsPaths.size() > 1)
+        {
+            itemsConcaveHull = polygonLib::PolygonPro::polygonsConcaveHull(itemsPaths, 0.2);
+            itemsConcaveHull = polygonLib::PolygonPro::polygonSimplyfy(itemsConcaveHull, 100);
+        }
+        else
+            itemsConcaveHull = polygonLib::PolygonPro::polygonSimplyfy(itemsPaths[0], 100);
+
+        Item sh(itemsConcaveHull);
+        auto& orbp = trsh.transformedShape();
+        Clipper3r::Path orbpConcaveHull = polygonLib::PolygonPro::polygonSimplyfy(orbp.Contour, 100);
+        Item orbpsh(orbpConcaveHull);
+        libnfporb::polygon_t pA;
+        bg::append(pA.outer(), itemsConcaveHull);
+        libnfporb::polygon_t pB;
+        bg::append(pB.outer(), orbpConcaveHull);
+        libnfporb::nfp_t nfpt = libnfporb::generate_nfp(pA, pB);
+        //libnfporb::write_svg("D://nfp.svg", pA, pB, nfpt);
+
+        Shapes nfps;
+        for (int num = 0; num < nfpt.size(); num++)
+        {
+            Clipper3r::Path nfp_path;
+
+            nfp_path.resize(nfpt[num].size());
+            for (int i = 0; i < nfpt[num].size(); i++)
             {
-                auto& fixedp = sh.transformedShape();
-                auto& orbp = trsh.transformedShape();
-                libnfporb::polygon_t pA;
-                bg::append(pA.outer(), fixedp.Contour);
-                libnfporb::polygon_t pB;
-                bg::append(pB.outer(), orbp.Contour);
-                libnfporb::nfp_t nfp = libnfporb::generate_nfp(pA, pB);
-                //libnfporb::write_svg("C://Users//107661//Desktop//nfp.svg", pA, pB);
-                //for (int num = 0; num < nfp.size(); num++)
-                {
-                    Clipper3r::Path nfp_path;
-                    nfp_path.resize(nfp[0].size());
-                    for (int i = 0; i < nfp[0].size(); i++)
-                    {
-                        nfp_path[i].X = Clipper3r::cInt(nfp[0][i].x_.val());
-                        nfp_path[i].Y = Clipper3r::cInt(nfp[0][i].y_.val());
-                    }
-                    if (Clipper3r::Orientation(nfp_path))
-                    {
-                        Clipper3r::ReversePath(nfp_path);
-                    }
-                    std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
-                    subnfp_r = getSubnfp(nfp_path);
-                    correctNfpPosition(subnfp_r, sh, trsh);
-                    nfps[n] = subnfp_r.first;
-                }
-            }, policy);
-
-        return nfp::merge(nfps);
+                nfp_path[i].X = Clipper3r::cInt(nfpt[num][i].x_.val());
+                nfp_path[i].Y = Clipper3r::cInt(nfpt[num][i].y_.val());
+            }
+            if (nfp_path.size() < 3) continue;
+            if (Clipper3r::Orientation(nfp_path))
+            {
+                Clipper3r::ReversePath(nfp_path);
+            }
+            std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
+            subnfp_r = getSubnfp(nfp_path);
+            correctNfpPosition(subnfp_r, sh, orbpsh);
+            nfps.push_back(subnfp_r.first);
+        }
+        trshrv = orbpsh.referenceVertex();
+        return nfps;
     }
 
     template<class Level>
@@ -867,6 +864,7 @@ private:
         bool bNest2d = false;
         bool can_pack = false;
         bool pack_out = false;
+
         double best_overfit = std::numeric_limits<double>::max();
         auto& bin = bin_;
         auto binbb = sl::boundingBox(bin);
@@ -875,7 +873,6 @@ private:
         if(remaining.valid) {
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
-
         if (config_.object_function)
         {
             std::function<double(const Item&)> geTypeFunction;
@@ -894,6 +891,8 @@ private:
             return ret;
         }
 
+        auto alignment = config_.alignment;
+        bool pair_pack = ((remlist.size() + items_.size()) < 2);
         auto initial_tr = item.translation();
         auto initial_rot = item.rotation();
         if(items_.empty()) {
@@ -921,13 +920,15 @@ private:
                 // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
 
+                Vertex iv = { 0, 0 };
                 if (type == 6)
-                    nfps = calcnfp_CONCAVE(item);
+                    nfps = calcnfp_CONCAVE(item, iv);                
                 else
+                {
                     nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
-
-                auto iv = item.referenceVertex();
-
+                    iv = item.referenceVertex();
+                }
+ 
                 auto startpos = item.translation();
 
                 std::vector<Edges> ecache;
@@ -959,7 +960,7 @@ private:
                 {
                     // Inside check has to be strict if no alignment was enabled
                     std::function<double(const Box&)> ins_check;
-                    if (config_.alignment == Config::Alignment::DONT_ALIGN)
+                    if (alignment == Config::Alignment::DONT_ALIGN)
                         ins_check = [&binbb, norm](const Box& fullbb) {
                         double ret = 0;
                         if (!sl::isInside(fullbb, binbb))
@@ -975,7 +976,7 @@ private:
 
                     if (bNest2d)
                     {
-                        _objfunc = [norm, binbb, pbb, ins_check, type, pile_area, merged_pile](const Item& item)
+                        _objfunc = [binbb, pbb, ins_check, type, pile_area, merged_pile, pair_pack, &alignment](const Item& item)
                         {
                             auto ibb = item.boundingBox();
                             auto fullbb = sl::boundingBox(pbb, ibb);
@@ -989,7 +990,6 @@ private:
                             switch (type)
                             {
                             case 3:
-                            case 6:
                             case 4: {
                                 score = pl::distance(ibb.center(),
                                     binbb.center()) / norm_pdd;
@@ -1010,17 +1010,31 @@ private:
                                 double score_mid = fabs(ibb.center().X - binW / 2) / binW;
                                 score = score * 0.5 + score_mid * 0.5;
                             }break;
-                            //case 6: {
-                            //    score = pl::distance(ibb.center(),
-                            //        binbb.center()) / norm_pdd;
-                            //    auto item_path = item.transformedShape().Contour;
-                            //    for (auto& shape : merged_pile)
-                            //        item_path.insert(item_path.end(), shape.Contour.begin(), shape.Contour.end());
-                            //    auto all_path = libnest2d::shapelike::convexHull(item_path);
-                            //    double area = fabs(Clipper3r::Area(all_path));
-                            //    double area_score = 1 - (pile_area + item.area()) / area;
-                            //    score = score * 0.5 + area_score * 0.5;
-                            //}break;
+                            case 6: {
+                                if (pair_pack)
+                                {
+                                    score = pl::distance(ibb.center(),
+                                        binbb.center()) / norm_pdd;
+                                    double fullbbH = fullbb.height();
+                                    double fullbbW = fullbb.width();
+                                    double fullbbH_cal = fullbbW / binW * binH;
+                                    double fullbbW_cal = fullbbH / binH * binW;
+                                    fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                                    fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                                    double totalArea = fullbbH * fullbbW;
+                                    double area_score = 1 - pile_area / totalArea;//最小面积加权
+                                    if (pbb_area == fullbb_area)
+                                        area_score = 0;
+                                    score = score * 0.2 + area_score * 0.8;
+                                }
+                                else
+                                {
+                                    score = ibb.center().Y / binH;
+                                    double score_mid = fabs(ibb.center().X - pbb.center().X) / binW;
+                                    score = score * 0.45 + score_mid * 0.55;
+                                    alignment = Config::Alignment::CENTER;
+                                }
+                            }break;
                             case 7: {
                                 score = fabs(binH - ibb.center().Y) / binH;
                                 double score_left = ibb.center().X / binW;
@@ -1029,7 +1043,7 @@ private:
                             case 8: {
                                 score = ibb.center().Y / binH;
                                 double score_left = ibb.center().X / binW;
-                                score = score * 0.9 + score_left * 0.1;
+                                score = score * 0.7 + score_left * 0.3;
                             }break;
                             case 9: {
                                 score = ibb.center().X / binW;
@@ -1043,7 +1057,6 @@ private:
                             }break;
 
                             }
-
                             score += ins_check(fullbb);
 
                             return score;
@@ -1117,8 +1130,6 @@ private:
                     return opt.hidx < 0? ecache[opt.nfpidx].coords(opt.relpos) :
                             ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
                 };
-
-                auto alignment = config_.alignment;
 
                 auto boundaryCheck = [alignment, &merged_pile, &getNfpPoint,
                         &item, &bin, &iv, &startpos] (const Optimum& o)
