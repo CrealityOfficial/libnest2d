@@ -29,9 +29,13 @@ set(LIBNEST2D_SRCFILES
     include/libnest2d/optimizers/nlopt/genetic.hpp
     src/libnest2d.cpp
     include/libnest2d/nfp/libnfporb.hpp
+	
+	include/polygonLib/polygonLib.h
+	include/polygonLib/delaunator.h
+	src/polygonLib.cpp
     )
 
-set(LIBS clipper3r nlopt polygonLib)
+set(LIBS clipper3r nlopt)
 set(DEFS LIBNEST2D_STATIC LIBNEST2D_OPTIMIZER_nlopt LIBNEST2D_GEOMETRIES_clipper)
 set(INCS ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 if(BOOST_INCLUDE_DIRS)
