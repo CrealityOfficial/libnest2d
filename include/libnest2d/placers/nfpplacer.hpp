@@ -878,7 +878,7 @@ private:
             std::function<double(const Item&)> geTypeFunction;
             geTypeFunction = config_.object_function;
             type = geTypeFunction(item);
-            if (type > 2 && type < 11)
+            if (type > 2 && type < 12)
             {
                 bNest2d = true;
             }
@@ -921,7 +921,7 @@ private:
                 placeOutsideOfBin(item);
 
                 Vertex iv = { 0, 0 };
-                if (type == 6)
+                if (type == 6 || type == 11)
                     nfps = calcnfp_CONCAVE(item, iv);                
                 else
                 {
@@ -990,7 +990,8 @@ private:
                             switch (type)
                             {
                             case 3:
-                            case 4: {
+                            case 4: 
+                            case 11: {
                                 score = pl::distance(ibb.center(),
                                     binbb.center()) / norm_pdd;
                                 double fullbbH = fullbb.height();
