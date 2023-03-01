@@ -655,6 +655,36 @@ private:
         Clipper3r::Path itemsConcaveHull;
         if (itemsPaths.size() > 1)
         {
+            auto vSize = [](const Clipper3r::IntPoint& p0)
+            {
+                return sqrt(p0.X * p0.X + p0.Y * p0.Y);
+            };
+            Clipper3r::Paths itemsPathsDensed;
+            int max_dis = 100;
+            for (Clipper3r::Path item : itemsPaths)
+            {
+                if (item.empty()) continue;
+                Clipper3r::Path itemDensed;
+                itemDensed.push_back(item[0]);
+                for (int i = 1; i < item.size(); i++)
+                {
+                    Clipper3r::IntPoint ptAdd = item[i] - item[i - 1];
+                    int len = vSize(ptAdd);
+                    if (len > max_dis)
+                    {
+                        int addNum = len / max_dis;
+                        for (int j = 1; j < addNum; j++)
+                        {
+                            float theta = j * max_dis / (float)len;
+                            itemDensed.push_back(item[i - 1] + Clipper3r::IntPoint(theta * ptAdd.X, theta * ptAdd.Y));
+                        }
+                    }
+                    itemDensed.push_back(item[i]);
+                }
+                itemsPathsDensed.push_back(itemDensed);
+            }
+            itemsPaths.swap(itemsPathsDensed);
+            Clipper3r::Paths result;
             itemsConcaveHull = polygonLib::PolygonPro::polygonsConcaveHull(itemsPaths, 0.2);
             itemsConcaveHull = polygonLib::PolygonPro::polygonSimplyfy(itemsConcaveHull, 100);
         }
@@ -670,7 +700,9 @@ private:
         libnfporb::polygon_t pB;
         bg::append(pB.outer(), orbpConcaveHull);
         libnfporb::nfp_t nfpt = libnfporb::generate_nfp(pA, pB);
-        //libnfporb::write_svg("D://nfp.svg", pA, pB, nfpt);
+#if _DEBUG
+        libnfporb::write_svg("D://nfp.svg", pA, pB, nfpt);
+#endif
 
         Shapes nfps;
         for (int num = 0; num < nfpt.size(); num++)
