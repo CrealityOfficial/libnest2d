@@ -654,12 +654,14 @@ private:
 
         auto addPoint = [](Clipper3r::Path& item, int max_dis)
         {
-            if (item.empty()) return;
+            int ptSize = item.size();
+            if (ptSize == 0) return;
             Clipper3r::Path itemDensed;
             itemDensed.push_back(item[0]);
-            for (int i = 1; i < item.size(); i++)
+            for (int i = 1; i < ptSize + 1; i++)
             {
-                Clipper3r::IntPoint ptAdd = item[i] - item[i - 1];
+                int curIdx = i < ptSize ? i : i - ptSize;
+                Clipper3r::IntPoint ptAdd = item[curIdx] - item[i - 1];
                 int len = sqrt(ptAdd.X * ptAdd.X + ptAdd.Y * ptAdd.Y);
                 if (len > max_dis)
                 {
@@ -670,7 +672,7 @@ private:
                         itemDensed.push_back(item[i - 1] + Clipper3r::IntPoint(theta * ptAdd.X, theta * ptAdd.Y));
                     }
                 }
-                itemDensed.push_back(item[i]);
+                itemDensed.push_back(item[curIdx]);
             }
             item.swap(itemDensed);
         };
@@ -681,14 +683,13 @@ private:
             {
                 addPoint(item, 100);
             }
-            return polygonLib::PolygonPro::polygonsConcaveHull(items);
+            return polygonLib::PolygonPro::polygonSimplyfy(polygonLib::PolygonPro::polygonsConcaveHull(items), 25);
         };
 
         Clipper3r::Path itemsConcaveHull;
         if (itemsPaths.size() > 1)
         {
             itemsConcaveHull = getConcaveHull(itemsPaths);
-            itemsConcaveHull = polygonLib::PolygonPro::polygonSimplyfy(itemsConcaveHull, 25);
         }
         else
             itemsConcaveHull = polygonLib::PolygonPro::polygonSimplyfy(itemsPaths[0], 100);
@@ -705,12 +706,24 @@ private:
 #if _DEBUG
         libnfporb::write_svg("D://nfp.svg", pA, pB, nfpt);
 #endif
-
         Shapes nfps;
-        Clipper3r::Paths nfps_path;
+        if (nfpt.empty())
+        {
+            auto itemsConvexHull = libnest2d::shapelike::convexHull(itemsConcaveHull);
+            Item fixedp_convex(itemsConvexHull);
+            auto orbpConvexHull = libnest2d::shapelike::convexHull(orbpConcaveHull);
+            Item orbpsh_convex(orbpConvexHull);
+            auto nfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(fixedp_convex.transformedShape(), orbpsh_convex.transformedShape());
+            correctNfpPosition(nfp_r, fixedp_convex, orbpsh_convex);
+            nfps.push_back(nfp_r.first);
+            trshrv = orbpsh_convex.referenceVertex();
+            return nfps;
+        }
+
         for (int num = 0; num < nfpt.size(); num++)
         {
             Clipper3r::Path nfp_path;
+
             nfp_path.resize(nfpt[num].size());
             for (int i = 0; i < nfpt[num].size(); i++)
             {
@@ -722,13 +735,11 @@ private:
             {
                 Clipper3r::ReversePath(nfp_path);
             }
-            nfps_path.push_back(nfp_path);
+            std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
+            subnfp_r = getSubnfp(nfp_path);
+            correctNfpPosition(subnfp_r, sh, orbpsh);
+            nfps.push_back(subnfp_r.first);
         }
-        Clipper3r::Path nfpsConcaveHull = nfps_path.size() > 1 ? getConcaveHull(nfps_path) : nfps_path[0];
-        std::pair<Clipper3r::Polygon, Clipper3r::IntPoint> subnfp_r;
-        subnfp_r = getSubnfp(nfpsConcaveHull);
-        correctNfpPosition(subnfp_r, sh, orbpsh);
-        nfps.push_back(subnfp_r.first);
         trshrv = orbpsh.referenceVertex();
         return nfps;
     }

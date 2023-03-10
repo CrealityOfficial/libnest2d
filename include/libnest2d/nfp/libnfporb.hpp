@@ -181,6 +181,8 @@ nfp_t generate_nfp(polygon_t& pA, polygon_t& pB, const bool checkValidity = true
 	SlideResult res;
 	if ((res = slide(pA, pA.outer(), pB.outer(), nfp, transB, false))!= LOOP) {
 		DEBUG_VAL("Unable to complete outer nfp loop: " + std::to_string(res));
+		nfp.clear();
+		return nfp;
 		//throw std::runtime_error("Unable to complete outer nfp loop: " + std::to_string(res));
 	}
 
