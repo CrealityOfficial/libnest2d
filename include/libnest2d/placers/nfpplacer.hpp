@@ -1348,9 +1348,8 @@ private:
                 a.AddPath(trans_item_tmp.Contour, Clipper3r::ptSubject, true);
             }
             Clipper3r::IntRect ibb_dst = a.GetBounds();
-            item.inflation();
-            int ibbH = binbb.height() - 2 * item.inflation();
-            int ibbW = binbb.width() - 2 * item.inflation();
+            int ibbH = binbb.height() - 2 * item.inflation() + 2;
+            int ibbW = binbb.width() - 2 * item.inflation() + 2;
 
             if (!(ibb_dst.bottom - ibb_dst.top <= ibbH &&
                 ibb_dst.right - ibb_dst.left <= ibbW))
