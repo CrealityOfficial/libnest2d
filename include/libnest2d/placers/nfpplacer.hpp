@@ -1023,7 +1023,7 @@ private:
 
                     if (bNest2d)
                     {
-                        _objfunc = [binbb, pbb, ins_check, type, pile_area, merged_pile, pair_pack, &alignment](const Item& item)
+                        _objfunc = [binbb, pbb, ins_check, type, pile_area, pair_pack, &alignment](const Item& item)
                         {
                             auto ibb = item.boundingBox();
                             auto fullbb = sl::boundingBox(pbb, ibb);
@@ -1179,7 +1179,7 @@ private:
                             ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
                 };
 
-                auto boundaryCheck = [alignment, &merged_pile, &getNfpPoint,
+                auto boundaryCheck = [bNest2d, alignment, &merged_pile, &getNfpPoint,
                         &item, &bin, &iv, &startpos] (const Optimum& o)
                 {
                     auto v = getNfpPoint(o);
@@ -1192,8 +1192,11 @@ private:
                     merged_pile.pop_back();
 
                     double miss = 0;
-                    if(alignment == Config::Alignment::DONT_ALIGN)
-                       miss = sl::isInside(chull, bin) ? -1.0 : 1.0;
+                    if (alignment == Config::Alignment::DONT_ALIGN)
+                    {
+                        if(!bNest2d) chull = sl::convexHull(item.transformedShape());
+                        miss = sl::isInside(chull, bin) ? -1.0 : 1.0;
+                    }
                     else miss = overfit(chull, bin);
 
                     return miss;
