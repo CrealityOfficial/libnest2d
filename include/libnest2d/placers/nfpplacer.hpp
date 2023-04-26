@@ -967,6 +967,31 @@ private:
                 // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
 
+                auto addPoint = [](Clipper3r::Path& item, int max_dis)
+                {
+                    int ptSize = item.size();
+                    if (ptSize == 0) return;
+                    Clipper3r::Path itemDensed;
+                    itemDensed.push_back(item[0]);
+                    for (int i = 1; i < ptSize + 1; i++)
+                    {
+                        int curIdx = i < ptSize ? i : i - ptSize;
+                        Clipper3r::IntPoint ptAdd = item[curIdx] - item[i - 1];
+                        int len = sqrt(ptAdd.X * ptAdd.X + ptAdd.Y * ptAdd.Y);
+                        if (len > max_dis)
+                        {
+                            int addNum = len / max_dis;
+                            for (int j = 1; j < addNum; j++)
+                            {
+                                float theta = j * max_dis / (float)len;
+                                itemDensed.push_back(item[i - 1] + Clipper3r::IntPoint(theta * ptAdd.X, theta * ptAdd.Y));
+                            }
+                        }
+                        itemDensed.push_back(item[curIdx]);
+                    }
+                    item.swap(itemDensed);
+                };
+
                 Vertex iv = { 0, 0 };
                 if (type == 6 || type == 11)
                     nfps = calcnfp_CONCAVE(item, iv);                
@@ -974,6 +999,12 @@ private:
                 {
                     nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
                     iv = item.referenceVertex();
+                    for (auto& nfp : nfps) {
+                        Clipper3r::Path path = nfp.Contour;
+                        addPoint(path, 1000);
+                        Item fixedp_convex(path);
+                        nfp = fixedp_convex;
+                    }
                 }
  
                 auto startpos = item.translation();
@@ -1091,7 +1122,7 @@ private:
                             case 8: {
                                 score = ibb.center().Y / binH;
                                 double score_left = ibb.center().X / binW;
-                                score = score * 0.7 + score_left * 0.3;
+                                score = score * 0.9 + score_left * 0.1;
                             }break;
                             case 9: {
                                 score = ibb.center().X / binW;
