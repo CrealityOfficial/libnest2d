@@ -1022,7 +1022,8 @@ inline S convexHull(const S& sh, const PathTag&)
     namespace sl = shapelike;
     
     size_t edges = sl::cend(sh) - sl::cbegin(sh);
-    if(edges <= 3) return {};
+    if(edges < 3) return {};
+	else if(edges == 3) return sh;
     
     bool closed = false;
     std::vector<Point> U, L;
